@@ -14,10 +14,21 @@ class PostController extends Controller
         $posts = Post::where('is_draft', false)
             ->where(function ($query) {
                 $query->whereNull('published_at')
-                    ->orWhere('published_at', '<=', now()); // Fix: remove addDay()
+                    ->orWhere('published_at', '<=', now());
             })
             ->with('user')
             ->paginate(20);
+
+        // scheduled posts
+        // $posts = Post::where('is_draft', false)
+        //     ->where('published_at', '>', now())
+        //     ->with('user')
+        //     ->paginate(20);
+
+        // draft posts
+        // $posts = Post::where('is_draft', true)
+        //     ->with('user')
+        //     ->paginate(20);
 
         return response()->json($posts);
     }
