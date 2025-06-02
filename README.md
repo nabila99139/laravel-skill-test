@@ -14,9 +14,9 @@ Implement RESTful routes for a Post model using Laravel, with support for drafts
 
 ## 3. Specifications
 
-- **Drafts and Scheduling**: Posts can be saved as drafts or scheduled for future publishing.
-- **Scheduled Posts**: Scheduled posts should be published automatically when the publish date comes.
-- **Authentication**: Use Laravel’s built-in session and cookie-based authentication services.
+- Drafts and Scheduling: Posts can be saved as drafts or scheduled for future publishing.
+- Scheduled Posts: Scheduled posts should be published automatically when the publish date comes.
+- Authentication: Use Laravel’s built-in session and cookie-based authentication services.
 
 ## 4. Requirements
 
@@ -84,4 +84,124 @@ Seeders create sample data of User and Post.
 
 ```
 php artisan db:seed
+```
+
+
+
+
+
+
+
+# Postman Documentation for Laravel Skill Test API
+
+This documentation covers API testing for the Laravel Skill Test project, featuring:
+- Post CRUD operations with draft/scheduling functionality
+- Authentication via session cookies
+- Role-based access control
+
+## Authentication Setup
+
+In my case, my base url is --> http://127.0.0.1:8000
+In any case please set the header such as :
+
+#### a. X-XSRF-TOKEN : <XSRF-TOKEN=...> // please include only the key, in my case I decode the key before apply to postman
+#### b. Cookie : <XSRF-TOKEN=...> <space> <laravel_session=...> // you can get the laravel_session and XSRF-TOKEN after running csrf-token route 
+#### c. Content-Type : application/json
+#### d. Accept : application/json
+
+Let's set continue the route :
+
+### 1. Get CSRF Token (Optional for API clients)
+```
+GET {{base_url}}/csrf-token
+```
+
+### 2. Login
+```
+POST {{base_url}}/login
+(please set up the header)
+
+Body -> raw :
+{
+    "email": "user@example.com",
+    "password": "password"
+}
+```
+
+## Posts Endpoints
+
+### 1. List Active Posts (Public)
+```
+GET {{base_url}}/posts
+```
+
+### 2. Create Post (Authenticated)
+```
+POST {{base_url}}/posts
+(please set up the header)
+
+Body -> raw :
+{
+    "title": "New Post",
+    "content": "Post content here",
+    "is_draft": false,
+    "published_at": "2025-06-05 12:00:00"
+}
+```
+
+### 3. View Post (Public)
+```
+GET {{base_url}}/posts/1
+```
+
+### 4. Update Post (Owner Only)
+```
+PUT {{base_url}}/posts/1
+(please set up the header)
+
+Body -> raw :
+{
+    "title": "Updated Title",
+    "content": "Updated content"
+}
+```
+
+### 5. Delete Post (Owner Only)
+```
+(please set up the header)
+
+DELETE {{base_url}}/posts/1
+```
+
+#### p.s : i use the hardcode to only show posts that aren't draft within below query
+
+```
+Post::where('is_draft', false)
+    ->where(function ($query) {
+        $query->whereNull('published_at')
+            ->orWhere('published_at', '<=', now());
+    })
+    ->with('user')
+    ->paginate(20);
+
+```
+
+so, if you want to see the draft posts please change the query to 
+
+```
+Post::where('is_draft', true)
+    ->with('user')
+    ->paginate(20);
+
+```
+
+then query for the scheduling posts 
+
+```
+
+Post::where('is_draft', false)
+    ->where('published_at', '>', now())
+    ->with('user')
+    ->paginate(20);
+
 ```
