@@ -2,66 +2,53 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Post;
+use App\Http\Resources\PostResource;
 use App\Http\Requests\StorePostRequest;
 use App\Http\Requests\UpdatePostRequest;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class PostController extends Controller
 {
-    public function index()
+    public function index(): AnonymousResourceCollection
     {
-        $posts = Post::where('is_draft', false)
-            ->where(function ($query) {
-                $query->whereNull('published_at')
-                    ->orWhere('published_at', '<=', now());
-            })
-            ->with('user')
-            ->paginate(20);
-
-        // scheduled posts
-        // $posts = Post::where('is_draft', false)
-        //     ->where('published_at', '>', now())
-        //     ->with('user')
-        //     ->paginate(20);
-
-        // draft posts
-        // $posts = Post::where('is_draft', true)
-        //     ->with('user')
-        //     ->paginate(20);
-
-        return response()->json($posts);
+        return PostResource::collection(
+            Post::active()
+                ->with('user')
+                ->paginate(20)
+        );
     }
 
-    public function store(StorePostRequest $request)
+    public function store(StorePostRequest $request): PostResource
     {
         $post = $request->user()->posts()->create($request->validated());
-        return response()->json($post, 201);
+        return new PostResource($post->load('user'));
     }
 
-    public function show(Post $post)
+    public function show(Post $post): PostResource
     {
-        if ($post->is_draft || ($post->published_at && $post->published_at->isFuture())) {
-            abort(404);
+        if (!$post->isPublished()) {
+            abort(404, 'Post is not available');
         }
 
-        return response()->json($post->load('user'));
+        return new PostResource($post->load('user'));
     }
 
-    public function update(UpdatePostRequest $request, Post $post)
+    public function update(UpdatePostRequest $request, Post $post): PostResource
     {
-        if ($post->user_id !== $request->user()->id) {
-            abort(403);
+        if (!$post->isOwnedBy($request->user())) {
+            abort(403, 'You are not authorized to update this post');
         }
 
         $post->update($request->validated());
-        return response()->json($post);
+        return new PostResource($post->fresh()->load('user'));
     }
 
-    public function destroy(Request $request, Post $post)
+    public function destroy(Post $post): Response
     {
-        if ($post->user_id !== $request->user()->id) {
-            abort(403);
+        if (!auth()->user()->can('delete', $post)) {
+            abort(403, 'Unauthorized action.');
         }
 
         $post->delete();

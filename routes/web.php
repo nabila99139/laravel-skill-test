@@ -2,37 +2,23 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PostController;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Models\User;
+use App\Http\Controllers\AuthController;
 
 Route::get('/', function () {
     return response()->json(['message' => 'Laravel Skill Test']);
 });
 
 // Public routes
-Route::get('/posts', [PostController::class, 'index']);
-Route::get('/posts/{post}', [PostController::class, 'show']);
+Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
+Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');
+
+// Authentication routes
+Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Authenticated routes
 Route::middleware('auth')->group(function () {
-    Route::post('/posts', [PostController::class, 'store']);
-    Route::put('/posts/{post}', [PostController::class, 'update']);
-    Route::delete('/posts/{post}', [PostController::class, 'destroy']);
-});
-
-// Authentication routes
-Route::post('/login', function (Request $request) {
-    $credentials = $request->only('email', 'password');
-
-    if (!Auth::attempt($credentials)) {
-        return response()->json(['message' => 'Invalid credentials'], 401);
-    }
-
-    $user = Auth::user();
-    return response()->json(['user' => $user]);
-});
-
-Route::get('/csrf-token', function () {
-    return response()->json(['csrf_token' => csrf_token()]);
+    Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
+    Route::put('/posts/{post}', [PostController::class, 'update'])->name('posts.update');
+    Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
 });
